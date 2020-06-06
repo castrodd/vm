@@ -2,6 +2,7 @@ class CodeWriter:
     def __init__(self, path):
         self.file = open(path, 'a')
         self.labelCounter = 0
+        self.standardPointers = ["local", "argument", "this", "that"]
 
     def setLabelNumber(self):
         self.labelCounter = self.labelCounter + 1
@@ -194,8 +195,29 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
+        elif action == "push" and segment in self.standardPointers:
+            pass
+        elif action == "pop" and segment in self.standardPointers:
+            self.file.write("// pop {} {}\n".format(segment, index))
+            self.file.write("@SP\n")
+            self.file.write("M=M-1\n")
+            self.file.write("A=M\n")
+            self.file.write("D=A\n")
+            self.file.write("@{}\n".format(segment))
+            self.file.write("A=M+{}\n".format(index))
+            self.file.write("M=D\n")
+        elif action == "push" and segment in self.standardPointers:
+            self.file.write("// push {} {}\n".format(segment, index))
+            self.file.write("@{}\n".format(segment))
+            self.file.write("A=M+{}\n".format(index))
+            self.file.write("D=M\n")
+            self.file.write("@SP\n")
+            self.file.write("A=M\n")
+            self.file.write("M=D\n")
+            self.file.write("@SP\n")
+            self.file.write("M=M+1\n")
         else:
-            raise Exception("Not a push constant command")
+            raise Exception("Not an implemented command")
 
     def close(self):
         self.file.close()
