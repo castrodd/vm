@@ -17,12 +17,12 @@ def main():
     while inputFile.hasMoreCommands():
         inputFile.advance()
         command = inputFile.getCommand()
-        print("command", command)
         if inputFile.isArithmetic():
-            print("outputs add")
             outputFile.writeArithmetic(command)
         elif inputFile.isPush() or inputFile.isPop():
-            outputFile.writePushPop(command) 
+            outputFile.writePushPop(command)
+        else:
+            raise Exception("{} command not supported".format(command))
     
     inputFile.close() 
     outputFile.close()
