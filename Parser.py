@@ -61,7 +61,6 @@ class Parser:
         return self.currentCommand.strip().split(' ')
 
     def isArithmetic(self):
-        print("isArith?", self.commandType())
         return self.commandType() == "C_ARITHMETIC"
     
     def isPush(self):
