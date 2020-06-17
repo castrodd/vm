@@ -19,11 +19,6 @@ def main():
 
     writer = CodeWriter(filename, outputFile)
     parser = Parser(inputName)
-    
-    # inputName = sys.argv[1]
-    # inputFile = Parser(inputName)
-    # outputName = createOutputFileName(inputName)
-    # outputFile = CodeWriter(outputName)
 
     while parser.hasMoreCommands():
         parser.advance()
