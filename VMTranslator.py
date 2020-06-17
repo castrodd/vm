@@ -26,7 +26,9 @@ def main():
         if parser.isArithmetic():
             writer.writeArithmetic(command)
         elif parser.isPush() or parser.isPop():
-            writer.writePushPop(command) 
+            writer.writePushPop(command)
+        else:
+            raise Exception("{} command not supported".format(command))
     
     parser.close() 
     writer.close()
