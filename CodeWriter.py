@@ -3,6 +3,7 @@ class CodeWriter:
         self.fileName = name
         self.file = open(path, 'a+')
         self.labelCounter = 0
+        self.functionName = "anon"
         self.standardPointers = {
             "local": "LCL",
             "argument": "ARG",
@@ -15,11 +16,23 @@ class CodeWriter:
     
     def getFileName(self):
         return self.fileName
+    
+    def getFunctionName(self):
+        return self.functionName
 
     def setLabelNumber(self):
         self.labelCounter = self.labelCounter + 1
         return self.labelCounter
     
+    def getLabelName(self, command):
+        return command[1]
+    
+    def makeLabel(self, command):
+        labelName = self.getLabelName(command)
+        fileName = self.getFileName()
+        functionName = self.getFunctionName()
+        return "{}.{}${}".format(fileName, functionName, labelName)
+
     def getSegmentPointer(self, segment):
         return self.standardPointers[segment]
 
@@ -307,6 +320,27 @@ class CodeWriter:
                 self.file.write("M=M+1\n")
         else:
             raise Exception("{} {} is not an implemented command".format(action, segment))
+    
+    def writeLabel(self, command):
+        labelName = self.getLabelName(command)
+        self.file.write("// label {}\n".format(labelName))
+        self.file.write("({})\n".format(labelName))
+    
+    def writeGoto(self, command):
+        labelName = self.getLabelName(command)
+        self.file.write("// Goto {}\n".format(labelName))
+        self.file.write("@{}\n".format(labelName))
+        self.file.write("0;JMP\n")
+    
+    def writeIf(self, command):
+        labelName = self.getLabelName(command)
+        self.file.write("// If-goto {}\n".format(labelName))
+        self.file.write("@SP\n")
+        self.file.write("M=M-1\n")
+        self.file.write("A=M\n")
+        self.file.write("D=M\n")
+        self.file.write("@{}\n".format(labelName))
+        self.file.write("D;JNE\n")
 
     def close(self):
         self.file.close()

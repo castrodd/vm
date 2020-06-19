@@ -35,7 +35,6 @@ class Parser:
             mostSignificantPart = self.getCommand()[0]
         except:
             return None
-        # print(mostSignificantPart)
         if mostSignificantPart in self.arithmeticalLogicalCommands:
             return "C_ARITHMETIC"
         elif mostSignificantPart == "push":
@@ -54,7 +53,12 @@ class Parser:
             return "C_RETURN"
         elif mostSignificantPart == "call":
             return "C_CALL"
+        elif mostSignificantPart == "//":
+            return "C_COMMENT"
+        elif mostSignificantPart == "":
+            return ""
         else:
+            print("GOT HERE", mostSignificantPart)
             return None
     
     def getCommand(self):
@@ -71,6 +75,21 @@ class Parser:
     
     def isReturn(self):
         return self.commandType() == "C_RETURN"
+    
+    def isLabel(self):
+        return self.commandType() == "C_LABEL"
+    
+    def isGoto(self):
+        return self.commandType() == "C_GOTO"
+    
+    def isIf(self):
+        return self.commandType() == "C_IF"
+    
+    def isComment(self):
+        return self.commandType() == "C_COMMENT"
+    
+    def isBlankLine(self):
+        return self.commandType() == ""
 
     def arg1(self):
         if self.isArithmetic():

@@ -3,16 +3,19 @@ import os
 from Parser import Parser
 from CodeWriter import CodeWriter
 
-def main():
+def getInputName():
     try:
-        inputName = sys.argv[1]
+        return sys.argv[1]
     except IndexError:
         raise SystemExit("Usage: {} <input filename>".format(sys.argv[0]))
+
+def main():
+    inputName = getInputName()
     
-    outputFile = inputName.partition(".")[0] + '.asm'
+    outputFileName = inputName.partition(".")[0] + '.asm'
     filename = os.path.basename(inputName).partition(".")[0]
 
-    writer = CodeWriter(filename, outputFile)
+    writer = CodeWriter(filename, outputFileName)
     parser = Parser(inputName)
 
     while parser.hasMoreCommands():
@@ -22,6 +25,14 @@ def main():
             writer.writeArithmetic(command)
         elif parser.isPush() or parser.isPop():
             writer.writePushPop(command)
+        elif parser.isLabel():
+            writer.writeLabel(command)
+        elif parser.isGoto():
+            writer.writeGoto(command)
+        elif parser.isIf():
+            writer.writeIf(command)
+        elif parser.isComment() or parser.isBlankLine():
+            continue
         else:
             raise Exception("{} command not supported".format(command))
     
