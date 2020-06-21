@@ -84,6 +84,12 @@ class Parser:
     
     def isIf(self):
         return self.commandType() == "C_IF"
+
+    def isFunction(self):
+        return self.commandType() == "C_FUNCTION"
+    
+    def isCall(self):
+        return self.commandType() == "C_CALL"
     
     def isComment(self):
         return self.commandType() == "C_COMMENT"

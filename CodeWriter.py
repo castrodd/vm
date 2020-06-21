@@ -19,6 +19,9 @@ class CodeWriter:
     
     def getFunctionName(self):
         return self.functionName
+    
+    def setFunctionName(self, name):
+        self.functionName = name
 
     def setLabelNumber(self):
         self.labelCounter = self.labelCounter + 1
@@ -27,18 +30,16 @@ class CodeWriter:
     def getLabelName(self, command):
         return command[1]
     
-    def makeLabel(self, command):
-        labelName = self.getLabelName(command)
-        fileName = self.getFileName()
+    def getFunctionNameLabel(self):
         functionName = self.getFunctionName()
-        return "{}.{}${}".format(fileName, functionName, labelName)
+        return functionName
 
     def getSegmentPointer(self, segment):
         return self.standardPointers[segment]
 
     def writeArithmetic(self, command):
-        command = command[0]
-        if command == "add":
+        action = command[0]
+        if action == "add":
             self.file.write("// add\n")
             self.file.write("@SP\n")
             self.file.write("M=M-1\n")
@@ -54,7 +55,7 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
-        elif command == "sub":
+        elif action == "sub":
             self.file.write("// sub\n")
             self.file.write("@SP\n")
             self.file.write("M=M-1\n")
@@ -70,7 +71,7 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
-        elif command == "neg":
+        elif action == "neg":
             self.file.write("// neg\n")
             self.file.write("@SP\n")
             self.file.write("M=M-1\n")
@@ -82,7 +83,7 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
-        elif command == "eq":
+        elif action == "eq":
             currentLabel = self.setLabelNumber()
             self.file.write("// eq\n")
             self.file.write("@SP\n")
@@ -107,7 +108,7 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
-        elif command == "gt":
+        elif action == "gt":
             currentLabel = self.setLabelNumber()
             self.file.write("// gt\n")
             self.file.write("@SP\n")
@@ -132,7 +133,7 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
-        elif command == "lt":
+        elif action == "lt":
             currentLabel = self.setLabelNumber()
             self.file.write("// lt\n")
             self.file.write("@SP\n")
@@ -157,7 +158,7 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
-        elif command == "and":
+        elif action == "and":
             self.file.write("// and\n")
             self.file.write("@SP\n")
             self.file.write("M=M-1\n")
@@ -173,7 +174,7 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
-        elif command == "or":
+        elif action == "or":
             self.file.write("// or\n")
             self.file.write("@SP\n")
             self.file.write("M=M-1\n")
@@ -189,7 +190,7 @@ class CodeWriter:
             self.file.write("M=D\n")
             self.file.write("@SP\n")
             self.file.write("M=M+1\n")
-        elif command == "not":
+        elif action == "not":
             self.file.write("// neg\n")
             self.file.write("@SP\n")
             self.file.write("M=M-1\n")
@@ -205,10 +206,9 @@ class CodeWriter:
             raise Exception("Not a valid command")
     
     def writePushPop(self, command):
-        parseCommand = command
-        action = parseCommand[0]
-        segment = parseCommand[1]
-        index = parseCommand[2]
+        action = command[0]
+        segment = command[1]
+        index = command[2]
         if action == "push" and segment == "constant":
             self.file.write("// push constant {}\n".format(index))
             self.file.write("@{}\n".format(index))
@@ -322,25 +322,132 @@ class CodeWriter:
             raise Exception("{} {} is not an implemented command".format(action, segment))
     
     def writeLabel(self, command):
+        functionName = self.getFunctionNameLabel()
         labelName = self.getLabelName(command)
         self.file.write("// label {}\n".format(labelName))
-        self.file.write("({})\n".format(labelName))
+        self.file.write("({}${})\n".format(functionName, labelName))
     
     def writeGoto(self, command):
-        labelName = self.getLabelName(command)
+        functionName = self.getFunctionNameLabel()
+        labelName = self.getLabelName(command)        
         self.file.write("// Goto {}\n".format(labelName))
-        self.file.write("@{}\n".format(labelName))
+        self.file.write("@{}${}\n".format(functionName, labelName))
         self.file.write("0;JMP\n")
     
     def writeIf(self, command):
+        functionName = self.getFunctionNameLabel()
         labelName = self.getLabelName(command)
         self.file.write("// If-goto {}\n".format(labelName))
         self.file.write("@SP\n")
         self.file.write("M=M-1\n")
         self.file.write("A=M\n")
         self.file.write("D=M\n")
-        self.file.write("@{}\n".format(labelName))
+        self.file.write("@{}${}\n".format(functionName, labelName))
         self.file.write("D;JNE\n")
+    
+    def writeFunction(self, command):
+        self.setFunctionName(command[1])
+        functionLabel = self.getFunctionNameLabel()
+        numberOfArgs = int(command[2])
+
+        self.file.write("// function {}\n".format(functionLabel))
+        self.file.write("({})\n".format(functionLabel))
+        for i in range(numberOfArgs):
+            self.writePushPop(["push", "constant", "0"])
+        
+        self.setFunctionName("anon")
+    
+    def loadAndPush(self, symbol):
+        self.file.write("@{}\n".format(symbol))
+        self.file.write("D=M\n")
+        self.file.write("@SP\n")
+        self.file.write("A=M\n")
+        self.file.write("M=D\n")
+        self.file.write("@SP\n")
+        self.file.write("M=M+1\n")
+    
+    def writeCall(self, command):
+        functionName = self.getFunctionNameLabel()
+        labelNumber = self.setLabelNumber()
+        returnLabel = "{}$ret.{}".format(functionName, labelNumber)
+
+        self.file.write("// call {}\n".format(command[1]))
+        self.file.write(self.loadAndPush(returnLabel))
+        self.file.write(self.loadAndPush("LCL"))
+        self.file.write(self.loadAndPush("ARG"))
+        self.file.write(self.loadAndPush("THIS"))
+        self.file.write(self.loadAndPush("THAT"))
+        self.file.write(self.loadAndPush("SP"))
+        self.writePushPop(["push", "constant", "5"])
+        self.writeArithmetic(["sub"])
+        self.writePushPop(["push", "constant", command[2]])
+        self.writeArithmetic(["sub"])
+        self.file.write("@SP\n")
+        self.file.write("M=M-1\n")
+        self.file.write("A=M\n")
+        self.file.write("A=M\n")
+        self.file.write("D=A\n")
+        self.file.write("@ARG\n")
+        self.file.write("A=M\n")
+        self.file.write("M=D\n")
+        self.file.write("@SP\n")
+        self.file.write("D=M\n")
+        self.file.write("@LCL\n")
+        self.file.write("M=D\n")
+        self.file.write("@{}.{}\n".format( self.getFileName(), command[1]))
+        self.file.write("0;JMP\n")
+        self.file.write("({})\n".format(returnLabel))
+
+    def restoreSegment(self, segment):
+        self.file.write("// restore {}\n".format(segment))
+        self.file.write("@13\n")
+        self.file.write("M=M-1\n")
+        self.file.write("A=M\n")
+        self.file.write("D=M\n")
+        self.file.write("@{}\n".format(segment))
+        self.file.write("M=D\n")
+    
+    def writeReturn(self, command):
+        self.file.write("// return\n")
+        self.file.write("@LCL\n")
+        self.file.write("D=M\n")
+        self.file.write("@13\n")
+        self.file.write("M=D\n")
+        self.file.write("@SP\n")
+        self.file.write("A=M\n")
+        self.file.write("M=D\n")
+        self.file.write("@SP\n")
+        self.file.write("M=M+1\n")
+        self.writePushPop(["push", "constant", "5"])
+        self.writeArithmetic(["sub"])
+        self.file.write("@SP\n")
+        self.file.write("M=M-1\n")
+        self.file.write("A=M\n")
+        self.file.write("A=M\n")
+        self.file.write("D=M\n")
+        self.file.write("@14\n")
+        self.file.write("M=D\n")
+        self.file.write("@SP\n")
+        self.file.write("M=M-1\n")
+        self.file.write("A=M\n")
+        self.file.write("D=M\n")
+        self.file.write("@ARG\n")
+        self.file.write("A=M\n")
+        self.file.write("M=D\n")
+        self.file.write("@ARG\n")
+        self.file.write("D=M+1\n")
+        self.file.write("@SP\n")
+        self.file.write("M=D\n")
+        self.restoreSegment("THAT")
+        self.restoreSegment("THIS")
+        self.restoreSegment("ARG")
+        self.restoreSegment("LCL")
+        self.file.write("@14\n")
+        self.file.write("A=M\n")
+        self.file.write("0;JMP\n")
+
+
+
 
     def close(self):
         self.file.close()

@@ -31,10 +31,16 @@ def main():
             writer.writeGoto(command)
         elif parser.isIf():
             writer.writeIf(command)
+        elif parser.isFunction():
+            writer.writeFunction(command)
+        elif parser.isCall():
+            writer.writeCall(command)
+        elif parser.isReturn():
+            writer.writeReturn(command)
         elif parser.isComment() or parser.isBlankLine():
             continue
         else:
-            raise Exception("{} command not supported".format(command))
+            raise Exception("Command not supported")
     
     parser.close() 
     writer.close()
