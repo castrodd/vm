@@ -2,7 +2,6 @@ class Parser:
     def __init__(self, path):
         self.file = open(path, 'r')
         self.originalCommands = self.file.readlines()
-        # print("commands", self.originalCommands)
         self.commands = self.originalCommands[:]
         self.currentCommand = None
         self.arithmeticalLogicalCommands = {

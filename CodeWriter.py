@@ -1,7 +1,8 @@
 class CodeWriter:
-    def __init__(self, name, path):
-        self.fileName = name
-        self.file = open(path, 'a+')
+    def __init__(self, name):
+        self.currentFileName = None
+        self.outputFileName = name + ".asm"
+        self.file = open(self.outputFileName, 'a+')
         self.labelCounter = 0
         self.functionName = "anon"
         self.standardPointers = {
@@ -14,8 +15,19 @@ class CodeWriter:
         }
         print("Parsing {}...".format(name))
     
-    def getFileName(self):
-        return self.fileName
+    def bootstrap(self):
+        self.file.write("// bootstrap\n")
+        self.file.write("@256\n")
+        self.file.write("D=A\n")
+        self.file.write("@SP\n")
+        self.file.write("M=D\n")
+        self.callInit()
+    
+    def setNewInputFile(self, name):
+        self.currentFileName = name
+    
+    def getCurrentFileName(self):
+        return self.currentFileName
     
     def getFunctionName(self):
         return self.functionName
@@ -26,13 +38,6 @@ class CodeWriter:
     def setLabelNumber(self):
         self.labelCounter = self.labelCounter + 1
         return self.labelCounter
-    
-    def getLabelName(self, command):
-        return command[1]
-    
-    def getFunctionNameLabel(self):
-        functionName = self.getFunctionName()
-        return functionName
 
     def getSegmentPointer(self, segment):
         return self.standardPointers[segment]
@@ -298,7 +303,7 @@ class CodeWriter:
                 self.file.write("@SP\n")
                 self.file.write("M=M+1\n")
         elif segment == "static":
-            fileName = self.getFileName()
+            fileName = self.getCurrentFileName()
             variableName = "{}{}{}".format(fileName, ".", index)
             if action == "pop":
                 self.file.write("// pop {} {}\n".format(segment, index))
@@ -322,21 +327,21 @@ class CodeWriter:
             raise Exception("{} {} is not an implemented command".format(action, segment))
     
     def writeLabel(self, command):
-        functionName = self.getFunctionNameLabel()
-        labelName = self.getLabelName(command)
+        functionName = self.getFunctionName()
+        labelName = command[1]
         self.file.write("// label {}\n".format(labelName))
         self.file.write("({}${})\n".format(functionName, labelName))
     
     def writeGoto(self, command):
-        functionName = self.getFunctionNameLabel()
-        labelName = self.getLabelName(command)        
+        functionName = self.getFunctionName()
+        labelName = command[1]        
         self.file.write("// Goto {}\n".format(labelName))
         self.file.write("@{}${}\n".format(functionName, labelName))
         self.file.write("0;JMP\n")
     
     def writeIf(self, command):
-        functionName = self.getFunctionNameLabel()
-        labelName = self.getLabelName(command)
+        functionName = self.getFunctionName()
+        labelName = command[1]
         self.file.write("// If-goto {}\n".format(labelName))
         self.file.write("@SP\n")
         self.file.write("M=M-1\n")
@@ -346,18 +351,17 @@ class CodeWriter:
         self.file.write("D;JNE\n")
     
     def writeFunction(self, command):
-        self.setFunctionName(command[1])
-        functionLabel = self.getFunctionNameLabel()
+        functionLabel = command[1]
         numberOfArgs = int(command[2])
+        self.setFunctionName(functionLabel)
 
         self.file.write("// function {}\n".format(functionLabel))
         self.file.write("({})\n".format(functionLabel))
         for i in range(numberOfArgs):
             self.writePushPop(["push", "constant", "0"])
-        
-        self.setFunctionName("anon")
     
     def loadAndPush(self, symbol):
+        self.file.write("// Load {}\n".format(symbol))
         self.file.write("@{}\n".format(symbol))
         self.file.write("D=M\n")
         self.file.write("@SP\n")
@@ -367,20 +371,59 @@ class CodeWriter:
         self.file.write("M=M+1\n")
     
     def writeCall(self, command):
-        functionName = self.getFunctionNameLabel()
+        functionName = command[1]
         labelNumber = self.setLabelNumber()
         returnLabel = "{}$ret.{}".format(functionName, labelNumber)
 
         self.file.write("// call {}\n".format(command[1]))
-        self.file.write(self.loadAndPush(returnLabel))
-        self.file.write(self.loadAndPush("LCL"))
-        self.file.write(self.loadAndPush("ARG"))
-        self.file.write(self.loadAndPush("THIS"))
-        self.file.write(self.loadAndPush("THAT"))
-        self.file.write(self.loadAndPush("SP"))
+        self.file.write("@{}\n".format(returnLabel))
+        self.file.write("D=A\n")
+        self.file.write("@SP\n")
+        self.file.write("A=M\n")
+        self.file.write("M=D\n")
+        self.file.write("@SP\n")
+        self.file.write("M=M+1\n")
+
+        self.loadAndPush("LCL")
+        self.loadAndPush("ARG")
+        self.loadAndPush("THIS")
+        self.loadAndPush("THAT")
+        self.loadAndPush("SP")
+
         self.writePushPop(["push", "constant", "5"])
         self.writeArithmetic(["sub"])
         self.writePushPop(["push", "constant", command[2]])
+        self.writeArithmetic(["sub"])
+        self.file.write("@SP\n")
+        self.file.write("M=M-1\n")
+        self.file.write("A=M\n")
+        self.file.write("A=M\n")
+        self.file.write("D=A\n")
+        self.file.write("@ARG\n")
+        self.file.write("M=D\n")
+
+        self.file.write("@SP\n")
+        self.file.write("D=M\n")
+        self.file.write("@LCL\n")
+        self.file.write("M=D\n")
+
+        self.file.write("@{}\n".format(command[1]))
+        self.file.write("0;JMP\n")
+        self.file.write("({})\n".format(returnLabel))
+    
+    def callInit(self):
+        returnLabel = "Sys.init$ret.0"
+
+        self.file.write("// call Sys.init\n")
+        self.loadAndPush(returnLabel)
+        self.loadAndPush("LCL")
+        self.loadAndPush("ARG")
+        self.loadAndPush("THIS")
+        self.loadAndPush("THAT")
+        self.loadAndPush("SP")
+        self.writePushPop(["push", "constant", "5"])
+        self.writeArithmetic(["sub"])
+        self.writePushPop(["push", "constant", "0"])
         self.writeArithmetic(["sub"])
         self.file.write("@SP\n")
         self.file.write("M=M-1\n")
@@ -394,7 +437,7 @@ class CodeWriter:
         self.file.write("D=M\n")
         self.file.write("@LCL\n")
         self.file.write("M=D\n")
-        self.file.write("@{}.{}\n".format( self.getFileName(), command[1]))
+        self.file.write("@Sys.init\n")
         self.file.write("0;JMP\n")
         self.file.write("({})\n".format(returnLabel))
 
@@ -445,9 +488,6 @@ class CodeWriter:
         self.file.write("@14\n")
         self.file.write("A=M\n")
         self.file.write("0;JMP\n")
-
-
-
 
     def close(self):
         self.file.close()
