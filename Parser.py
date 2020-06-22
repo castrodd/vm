@@ -57,7 +57,7 @@ class Parser:
         elif mostSignificantPart == "":
             return ""
         else:
-            print("GOT HERE", mostSignificantPart)
+            print("Command cannot be parsed: {}".format(self.getCommand()))
             return None
     
     def getCommand(self):

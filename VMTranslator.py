@@ -12,22 +12,30 @@ def getInputName():
 def trimFile(name):
     return os.path.basename(name).partition(".")[0]
 
+def isVMFile(fileName):
+    return os.path.basename(fileName).partition(".")[2] == "vm"
+
 def main():
     inputFileName = getInputName()
     isDirectory = os.path.isdir(inputFileName)
 
     if isDirectory:
         files = os.listdir(inputFileName)
-        listOfFiles = map(lambda fileName: inputFileName + "/" + fileName, files)
+        vmFiles = filter(isVMFile, files)
+        listOfFiles = list(map(lambda fileName: inputFileName + "/" + fileName, vmFiles))
+
         outputFileName = trimFile(inputFileName)
-        writer = CodeWriter(outputFileName)
-        writer.bootstrap()
+        writer = CodeWriter(inputFileName + "/" + outputFileName)
+        if len(listOfFiles) > 1:
+           writer.bootstrap()
     else:
         listOfFiles = [inputFileName]
         outputFileName = trimFile(inputFileName)
         writer = CodeWriter(outputFileName)
 
     for currentFile in listOfFiles:
+        print("File to be parsed: {}".format(currentFile))
+
         writer.setNewInputFile(trimFile(currentFile))
         parser = Parser(currentFile)
 

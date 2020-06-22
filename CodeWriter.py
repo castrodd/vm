@@ -13,11 +13,12 @@ class CodeWriter:
             "temp": None,
             "pointer": None
         }
-        print("Parsing {}...".format(name))
+        
+        print("Output: {}".format(self.outputFileName))
     
     def bootstrap(self):
         self.file.write("// bootstrap\n")
-        self.file.write("@256\n")
+        self.file.write("@261\n")
         self.file.write("D=A\n")
         self.file.write("@SP\n")
         self.file.write("M=D\n")
