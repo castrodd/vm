@@ -96,21 +96,6 @@ class Parser:
     def isBlankLine(self):
         return self.commandType() == ""
 
-    def arg1(self):
-        if self.isArithmetic():
-            return self.getCommand()[0]
-        elif self.isReturn():
-            return None
-        else:
-            return self.getCommand()[1]
-
-    def arg2(self):
-        currentCommand = self.commandType()
-        if currentCommand in ["C_PUSH", "C_POP", "C_FUNCTION", "C_CALL"]:
-            return self.getCommand()[2]
-        else:
-            return None 
-
     def close(self):
         if self.file:
             self.file.close()
