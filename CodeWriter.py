@@ -9,9 +9,7 @@ class CodeWriter:
             "local": "LCL",
             "argument": "ARG",
             "this": "THIS",
-            "that": "THAT",
-            "temp": None,
-            "pointer": None
+            "that": "THAT"
         }
         
         print("Output: {}".format(self.outputFileName))
