@@ -215,16 +215,8 @@ class CodeWriter:
         action = command[0]
         segment = command[1]
         index = command[2]
-        if action == "push" and segment == "constant":
-            self.file.write("// push constant {}\n".format(index))
-            self.file.write("@{}\n".format(index))
-            self.file.write("D=A\n")
-            self.file.write("@SP\n")
-            self.file.write("A=M\n")
-            self.file.write("M=D\n")
-            self.file.write("@SP\n")
-            self.file.write("M=M+1\n")
-        elif action == "pop" and segment in self.standardPointers:
+        
+        if action == "pop":
             self.file.write("// pop {} {}\n".format(segment, index))
             if segment == "temp":
                 segmentPointer = "R{}".format(5+int(index))
@@ -254,6 +246,17 @@ class CodeWriter:
                 self.file.write("@R13\n")
                 self.file.write("A=M\n")
                 self.file.write("M=D\n")
+            elif segment == "static":
+                fileName = self.getCurrentFileName()
+                variableName = "{}{}{}".format(fileName, ".", index)
+                self.file.write("// pop {} {}\n".format(segment, index))
+                self.file.write("@SP\n")
+                self.file.write("M=M-1\n")
+                self.file.write("A=M\n")
+                self.file.write("A=M\n")
+                self.file.write("D=A\n")
+                self.file.write("@{}\n".format(variableName))
+                self.file.write("M=D\n")
             else:
                 segmentPointer = self.getSegmentPointer(segment)
                 self.file.write("@{}\n".format(index))
@@ -271,9 +274,18 @@ class CodeWriter:
                 self.file.write("@R13\n")
                 self.file.write("A=M\n")
                 self.file.write("M=D\n")
-        elif action == "push" and segment in self.standardPointers:
+        elif action == "push":
             self.file.write("// push {} {}\n".format(segment, index))
-            if segment == "temp":
+            if segment == "constant":
+                self.file.write("// push constant {}\n".format(index))
+                self.file.write("@{}\n".format(index))
+                self.file.write("D=A\n")
+                self.file.write("@SP\n")
+                self.file.write("A=M\n")
+                self.file.write("M=D\n")
+                self.file.write("@SP\n")
+                self.file.write("M=M+1\n")
+            elif segment == "temp":
                 segmentPointer = "R{}".format(5+int(index))
                 self.file.write("@{}\n".format(segmentPointer))
                 self.file.write("D=M\n")
@@ -291,33 +303,23 @@ class CodeWriter:
                 self.file.write("M=D\n")
                 self.file.write("@SP\n")
                 self.file.write("M=M+1\n")
-            else:
-                segmentPointer = self.getSegmentPointer(segment)
-                self.file.write("@{}\n".format(index))
-                self.file.write("D=A\n")
-                self.file.write("@{}\n".format(segmentPointer))
-                self.file.write("A=M+D\n")
+            elif segment == "static":
+                fileName = self.getCurrentFileName()
+                variableName = "{}{}{}".format(fileName, ".", index)
+                self.file.write("// push {} {}\n".format(segment, index))
+                self.file.write("@{}\n".format(variableName))
                 self.file.write("D=M\n")
                 self.file.write("@SP\n")
                 self.file.write("A=M\n")
                 self.file.write("M=D\n")
                 self.file.write("@SP\n")
                 self.file.write("M=M+1\n")
-        elif segment == "static":
-            fileName = self.getCurrentFileName()
-            variableName = "{}{}{}".format(fileName, ".", index)
-            if action == "pop":
-                self.file.write("// pop {} {}\n".format(segment, index))
-                self.file.write("@SP\n")
-                self.file.write("M=M-1\n")
-                self.file.write("A=M\n")
-                self.file.write("A=M\n")
-                self.file.write("D=A\n")
-                self.file.write("@{}\n".format(variableName))
-                self.file.write("M=D\n")
             else:
-                self.file.write("// push {} {}\n".format(segment, index))
-                self.file.write("@{}\n".format(variableName))
+                segmentPointer = self.getSegmentPointer(segment)
+                self.file.write("@{}\n".format(index))
+                self.file.write("D=A\n")
+                self.file.write("@{}\n".format(segmentPointer))
+                self.file.write("A=M+D\n")
                 self.file.write("D=M\n")
                 self.file.write("@SP\n")
                 self.file.write("A=M\n")
